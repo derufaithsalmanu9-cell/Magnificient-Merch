@@ -46,5 +46,5 @@ export default async function ProductPage({
     );
   }
 
-  return <ProductDetail id={product.id} />;
+  return <ProductDetail product={product} />;
 }

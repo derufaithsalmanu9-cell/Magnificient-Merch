@@ -1,26 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type SizeOption = {
   size: string;
-  price?: number;
-  stock?: number;
+  price: number;
+  stock: number;
 };
 
 type Product = {
   id: string;
   name: string;
-  description?: string | null;
+  description: string | null;
   price: number;
   stock: number;
-  image?: string | null;
-  sizes?: unknown;
-};
-
-type ProductDetailProps = {
-  id: string;
+  image: string | null;
+  sizes: unknown;
 };
 
 type CartItem = {
@@ -29,173 +25,102 @@ type CartItem = {
   price: number;
   quantity: number;
   size: string;
-  image?: string | null;
+  image: string | null;
 };
 
 export default function ProductDetail({
-  id,
-}: ProductDetailProps) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-
+  product,
+}: {
+  product: Product;
+}) {
   const [selectedSize, setSelectedSize] = useState("-");
   const [quantity, setQuantity] = useState(1);
-
   const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
-    async function loadProduct() {
-      try {
-        const response = await fetch(
-          `/api/products?id=${encodeURIComponent(id)}`,
-          {
-            cache: "no-store",
-          }
-        );
+  // =========================
+  // NORMALIZE SIZE
+  // =========================
 
-        if (!response.ok) {
-          setProduct(null);
-          return;
+  const sizes: SizeOption[] = [];
+
+  if (Array.isArray(product.sizes)) {
+    for (const item of product.sizes) {
+      if (typeof item === "string") {
+        sizes.push({
+          size: item,
+          price: product.price,
+          stock: product.stock,
+        });
+
+        continue;
+      }
+
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "size" in item
+      ) {
+        const value = item as {
+          size?: unknown;
+          price?: unknown;
+          stock?: unknown;
+        };
+
+        if (typeof value.size !== "string") {
+          continue;
         }
 
-        const data = await response.json();
-
-        setProduct(data.product ?? null);
-      } catch (error) {
-        console.error("Gagal mengambil produk:", error);
-        setProduct(null);
-      } finally {
-        setLoading(false);
+        sizes.push({
+          size: value.size,
+          price:
+            typeof value.price === "number"
+              ? value.price
+              : product.price,
+          stock:
+            typeof value.stock === "number"
+              ? value.stock
+              : product.stock,
+        });
       }
     }
-
-    loadProduct();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-[#f5f3ee] px-6 py-32 text-black">
-        <div className="mx-auto max-w-6xl">
-          <div className="rounded-3xl bg-white p-10">
-            <div className="h-8 w-40 animate-pulse rounded bg-black/10" />
-            <div className="mt-6 h-12 w-72 animate-pulse rounded bg-black/10" />
-            <div className="mt-4 h-6 w-96 max-w-full animate-pulse rounded bg-black/10" />
-          </div>
-        </div>
-      </main>
-    );
   }
 
-  if (!product) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f5f3ee] px-6 text-black">
-        <div className="text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-600">
-            Magnificent Merch
-          </p>
+  const hasSizes = sizes.length > 0;
 
-          <h1 className="mt-4 text-4xl font-black">
-            Produk Tidak Ditemukan
-          </h1>
-
-          <Link
-            href="/merch"
-            className="mt-8 inline-block rounded-full bg-black px-7 py-4 text-sm font-bold text-white transition hover:bg-red-600"
-          >
-            ← Kembali ke Merchandise
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  /*
-   * Menormalisasi data sizes dari Supabase.
-   *
-   * Mendukung:
-   * [
-   *   { size: "S", price: 85000, stock: 10 },
-   *   { size: "M", price: 90000, stock: 15 }
-   * ]
-   *
-   * maupun:
-   *
-   * [
-   *   "S",
-   *   "M",
-   *   "L"
-   * ]
-   */
-  const normalizedSizes: SizeOption[] = Array.isArray(product.sizes)
-    ? product.sizes.reduce<SizeOption[]>((acc, item) => {
-        if (typeof item === "string") {
-          acc.push({
-            size: item,
-            price: product.price,
-            stock: product.stock,
-          });
-          return acc;
-        }
-
-        if (
-          typeof item === "object" &&
-          item !== null &&
-          "size" in item
-        ) {
-          const value = item as {
-            size?: unknown;
-            price?: unknown;
-            stock?: unknown;
-          };
-
-          const size = String(value.size ?? "").trim();
-          if (!size) {
-            return acc;
-          }
-
-          acc.push({
-            size,
-            price:
-              typeof value.price === "number"
-                ? value.price
-                : product.price,
-            stock:
-              typeof value.stock === "number"
-                ? value.stock
-                : product.stock,
-          });
-        }
-
-        return acc;
-      }, [])
-    : [];
-
-  const hasSizes = normalizedSizes.length > 0;
-
-  const currentSize =
-    normalizedSizes.find(
+  const selectedSizeData =
+    sizes.find(
       (item) => item.size === selectedSize
     ) ?? null;
 
   const currentPrice =
-    currentSize?.price ?? product.price;
+    selectedSizeData?.price ?? product.price;
 
   const currentStock =
-    currentSize?.stock ?? product.stock;
+    selectedSizeData?.stock ?? product.stock;
+
+  // =========================
+  // QUANTITY
+  // =========================
 
   function decreaseQuantity() {
-    setQuantity((current) => Math.max(1, current - 1));
-  }
-
-  function increaseQuantity() {
-    setQuantity((current) =>
-      Math.min(currentStock, current + 1)
+    setQuantity((value) =>
+      Math.max(1, value - 1)
     );
   }
 
-  function addToCart() {
-    if (!product) {
-      alert("Produk tidak tersedia.");
+  function increaseQuantity() {
+    setQuantity((value) =>
+      Math.min(currentStock, value + 1)
+    );
+  }
+
+  // =========================
+  // CHECKOUT
+  // =========================
+
+  function handleCheckout() {
+    if (hasSizes && selectedSize === "-") {
+      alert("Silakan pilih ukuran terlebih dahulu.");
       return;
     }
 
@@ -204,94 +129,40 @@ export default function ProductDetail({
       return;
     }
 
-    if (hasSizes && selectedSize === "-") {
-      alert("Silakan pilih ukuran terlebih dahulu.");
-      return;
-    }
-
     if (quantity > currentStock) {
-      alert("Jumlah melebihi stok yang tersedia.");
+      alert(
+        `Stok hanya tersedia ${currentStock} pcs.`
+      );
       return;
     }
 
     setAdding(true);
 
-    try {
-      const savedCart =
-        localStorage.getItem("magnificent-cart");
+    const cartItem: CartItem = {
+      id: product.id,
+      name: product.name,
+      price: currentPrice,
+      quantity,
+      size: selectedSize,
+      image: product.image,
+    };
 
-      let cart: CartItem[] = [];
+    localStorage.setItem(
+      "magnificent-cart",
+      JSON.stringify([cartItem])
+    );
 
-      if (savedCart) {
-        try {
-          const parsed = JSON.parse(savedCart);
-
-          if (Array.isArray(parsed)) {
-            cart = parsed;
-          }
-        } catch {
-          cart = [];
-        }
-      }
-
-      const cartKey = `${product.id}-${selectedSize}`;
-
-      const existingIndex = cart.findIndex(
-        (item) =>
-          `${item.id}-${item.size}` === cartKey
-      );
-
-      if (existingIndex >= 0) {
-        const existingItem = cart[existingIndex];
-
-        const newQuantity =
-          existingItem.quantity + quantity;
-
-        if (newQuantity > currentStock) {
-          alert(
-            `Stok hanya tersedia ${currentStock} pcs.`
-          );
-
-          setAdding(false);
-          return;
-        }
-
-        cart[existingIndex] = {
-          ...existingItem,
-          quantity: newQuantity,
-          price: currentPrice,
-        };
-      } else {
-        cart.push({
-          id: product.id,
-          name: product.name,
-          price: currentPrice,
-          quantity,
-          size: selectedSize,
-          image: product.image ?? null,
-        });
-      }
-
-      localStorage.setItem(
-        "magnificent-cart",
-        JSON.stringify(cart)
-      );
-
-      window.location.href = "/checkout";
-    } catch (error) {
-      console.error("Cart error:", error);
-
-      alert(
-        "Gagal menambahkan produk ke keranjang."
-      );
-
-      setAdding(false);
-    }
+    window.location.href = "/checkout";
   }
+
+  // =========================
+  // UI
+  // =========================
 
   return (
     <main className="min-h-screen bg-[#f5f3ee] px-6 py-28 text-black">
       <div className="mx-auto max-w-6xl">
+
         {/* BACK */}
         <Link
           href="/merch"
@@ -300,25 +171,26 @@ export default function ProductDetail({
           ← Kembali ke Merchandise
         </Link>
 
-        {/* PRODUCT */}
         <section className="mt-8 grid gap-10 lg:grid-cols-2">
+
           {/* IMAGE */}
           <div className="flex aspect-square items-center justify-center overflow-hidden rounded-3xl bg-white">
             {product.image ? (
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover object-center"
               />
             ) : (
-              <span className="text-5xl font-black tracking-tighter text-black/10">
+              <span className="px-10 text-center text-5xl font-black tracking-tighter text-black/10">
                 {product.name.toUpperCase()}
               </span>
             )}
           </div>
 
-          {/* INFO */}
+          {/* INFORMATION */}
           <div className="flex flex-col justify-center">
+
             <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-600">
               Official Merchandise
             </p>
@@ -349,39 +221,31 @@ export default function ProductDetail({
             {/* SIZE */}
             {hasSizes && (
               <div className="mt-8">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold">
-                    Pilih Ukuran
-                  </label>
-
-                  {selectedSize !== "-" && (
-                    <span className="text-sm text-black/40">
-                      Size {selectedSize}
-                    </span>
-                  )}
-                </div>
+                <label className="text-sm font-bold">
+                  Pilih Ukuran
+                </label>
 
                 <div className="mt-3 flex flex-wrap gap-3">
-                  {normalizedSizes.map((item) => {
-                    const isSelected =
+                  {sizes.map((item) => {
+                    const selected =
                       selectedSize === item.size;
 
-                    const isOutOfStock =
-                      (item.stock ?? 0) <= 0;
+                    const outOfStock =
+                      item.stock <= 0;
 
                     return (
                       <button
                         key={item.size}
                         type="button"
-                        disabled={isOutOfStock}
+                        disabled={outOfStock}
                         onClick={() => {
                           setSelectedSize(item.size);
                           setQuantity(1);
                         }}
-                        className={`min-w-14 rounded-xl border px-5 py-3 text-sm font-bold transition ${
-                          isSelected
+                        className={`rounded-xl border px-5 py-3 text-sm font-bold transition ${
+                          selected
                             ? "border-black bg-black text-white"
-                            : isOutOfStock
+                            : outOfStock
                               ? "cursor-not-allowed border-black/5 bg-black/5 text-black/20"
                               : "border-black/10 bg-white hover:border-black"
                         }`}
@@ -401,11 +265,12 @@ export default function ProductDetail({
               </label>
 
               <div className="mt-3 flex w-fit items-center overflow-hidden rounded-xl border border-black/10 bg-white">
+
                 <button
                   type="button"
                   onClick={decreaseQuantity}
                   disabled={quantity <= 1}
-                  className="flex h-12 w-12 items-center justify-center text-xl font-bold transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-12 w-12 items-center justify-center text-xl font-bold hover:bg-black hover:text-white disabled:opacity-30"
                 >
                   −
                 </button>
@@ -418,18 +283,19 @@ export default function ProductDetail({
                   type="button"
                   onClick={increaseQuantity}
                   disabled={
-                    quantity >= currentStock ||
-                    currentStock <= 0
+                    quantity >= currentStock
                   }
-                  className="flex h-12 w-12 items-center justify-center text-xl font-bold transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-12 w-12 items-center justify-center text-xl font-bold hover:bg-black hover:text-white disabled:opacity-30"
                 >
                   +
                 </button>
+
               </div>
             </div>
 
             {/* TOTAL */}
             <div className="mt-8 flex items-center justify-between border-t border-black/10 pt-6">
+
               <span className="text-black/50">
                 Total
               </span>
@@ -440,21 +306,24 @@ export default function ProductDetail({
                   currentPrice * quantity
                 ).toLocaleString("id-ID")}
               </span>
+
             </div>
 
             {/* CHECKOUT */}
             <button
               type="button"
-              onClick={addToCart}
+              onClick={handleCheckout}
               disabled={
                 adding ||
                 currentStock <= 0 ||
-                (hasSizes && selectedSize === "-")
+                (hasSizes &&
+                  selectedSize === "-")
               }
               className={`mt-6 w-full rounded-full px-7 py-4 text-sm font-bold transition ${
                 adding ||
                 currentStock <= 0 ||
-                (hasSizes && selectedSize === "-")
+                (hasSizes &&
+                  selectedSize === "-")
                   ? "cursor-not-allowed bg-black/10 text-black/30"
                   : "bg-black text-white hover:bg-red-600"
               }`}
@@ -463,15 +332,16 @@ export default function ProductDetail({
                 ? "Membuka Checkout..."
                 : currentStock <= 0
                   ? "Stok Habis"
-                  : hasSizes && selectedSize === "-"
+                  : hasSizes &&
+                      selectedSize === "-"
                     ? "Pilih Ukuran Dahulu"
                     : "Checkout Sekarang →"}
             </button>
 
             <p className="mt-4 text-center text-xs text-black/30">
-              Produk akan ditambahkan ke keranjang sebelum
-              checkout.
+              Produk akan langsung dibawa ke halaman checkout.
             </p>
+
           </div>
         </section>
       </div>
