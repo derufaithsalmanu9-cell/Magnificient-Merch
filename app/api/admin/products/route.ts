@@ -1,144 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabase } from "@/lib/supabase";
 
-function isAdmin(request: NextRequest) {
-  return !!request.cookies.get("magnificent_admin")?.value;
-}
-
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    if (!isAdmin(request)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-
-    const {
-      id,
-      name,
-      description,
-      price,
-      stock,
-      image,
-      active,
-      sizes,
-    } = body;
-
-    const { data, error } = await supabaseAdmin
-      .from("products")
-      .insert({
-        id,
-        name,
-        description,
-        price: Number(price || 0),
-        stock: Number(stock || 0),
-        image: image || null,
-        active: active ?? true,
-        sizes: sizes || [],
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error(error);
-
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      product: data,
-    });
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Gagal menambahkan produk." },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    if (!isAdmin(request)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-
-    const {
-      id,
-      name,
-      description,
-      price,
-      stock,
-      image,
-      active,
-      sizes,
-    } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "ID produk tidak ditemukan." },
-        { status: 400 }
-      );
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from("products")
-      .update({
-        name,
-        description,
-        price: Number(price || 0),
-        stock: Number(stock || 0),
-        image: image || null,
-        active: active ?? true,
-        sizes: sizes || [],
-      })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error(error);
-
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      product: data,
-    });
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Gagal memperbarui produk." },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    if (!isAdmin(request)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
     const id = request.nextUrl.searchParams.get("id");
 
     if (!id) {
@@ -148,28 +12,35 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabaseAdmin
-      .from("products")
-      .delete()
-      .eq("id", id);
+    const { data: product, error } =
+      await supabase
+        .from("products")
+        .select("*")
+        .eq("id", id)
+        .eq("active", true)
+        .single();
 
-    if (error) {
-      console.error(error);
-
+    if (error || !product) {
       return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
+        { error: "Produk tidak ditemukan." },
+        { status: 404 }
       );
     }
 
     return NextResponse.json({
-      success: true,
+      product,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Product API error:",
+      error
+    );
 
     return NextResponse.json(
-      { error: "Gagal menghapus produk." },
+      {
+        error:
+          "Terjadi kesalahan server.",
+      },
       { status: 500 }
     );
   }
