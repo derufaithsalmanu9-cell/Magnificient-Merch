@@ -59,7 +59,7 @@ export default async function HomePage() {
               <div className="product-hero product-blue">
                 <div className="product-shirt-design">
                   <span>MAGNIFICENT</span>
-                  <strong>24</strong>
+                  <strong>35</strong>
                 </div>
               </div>
 
