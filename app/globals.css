@@ -1,26 +1,557 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cream: #f8f1df;
+  --paper: #fffaf0;
+  --brown: #493521;
+  --wood: #754321;
+  --blue: #4c83c7;
+  --green: #507b55;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  margin: 0;
+  background: var(--cream);
+  color: var(--brown);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* =========================================
+   PAGE
+========================================= */
+
+.lumina-page {
+  background:
+    radial-gradient(circle at 20% 10%, #ffffff35 0 2px, transparent 3px),
+    radial-gradient(circle at 80% 30%, #ffffff30 0 2px, transparent 3px),
+    var(--cream);
+}
+
+/* =========================================
+   HERO
+========================================= */
+
+.lumina-hero {
+  min-height: 650px;
+  background:
+    radial-gradient(circle at 20% 30%, #ffffff40, transparent 20%),
+    radial-gradient(circle at 80% 20%, #ffffff35, transparent 18%),
+    linear-gradient(
+      180deg,
+      #67a4e6 0%,
+      #76b0e9 45%,
+      #a8d0ed 100%
+    );
+  position: relative;
+}
+
+.lumina-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 80%, #4e825a 0 80px, transparent 81px),
+    radial-gradient(circle at 95% 75%, #4e825a 0 110px, transparent 111px);
+  opacity: 0.9;
+}
+
+.lumina-label {
+  width: fit-content;
+  padding: 9px 20px;
+  border: 3px solid #a97439;
+  border-radius: 999px;
+  background: #fff9e9;
+  color: #754321;
+  box-shadow: 0 4px 0 #b9844d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.lumina-title {
+  color: #754321;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(4rem, 11vw, 7.5rem);
+  font-weight: 900;
+  line-height: 0.82;
+  letter-spacing: -0.06em;
+  text-shadow:
+    3px 3px 0 #fff8e8,
+    6px 6px 0 rgba(100, 55, 20, 0.12);
+}
+
+.lumina-title span {
+  color: #fff8e8;
+}
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+.wood-button {
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    #966036,
+    #683b20
+  );
+  border: 3px solid #4f2d19;
+  padding: 14px 24px;
+  color: white;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow:
+    0 5px 0 #3e2415,
+    inset 0 1px 0 rgba(255,255,255,.25);
+  transition: .25s ease;
+}
+
+.wood-button:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 0 #3e2415,
+    inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+.cream-button {
+  border-radius: 999px;
+  background: #fff8e8;
+  border: 3px solid #d4ae72;
+  padding: 14px 25px;
+  color: #493521;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 #b98245;
+  transition: .25s ease;
+}
+
+.cream-button:hover {
+  transform: translateY(-3px);
+}
+
+/* =========================================
+   FOREST
+========================================= */
+
+.forest-decoration {
+  position: absolute;
+  bottom: 0;
+  width: 190px;
+  height: 400px;
+  background: #416746;
+  opacity: .85;
+  border-radius: 100% 100% 0 0;
+}
+
+.forest-left {
+  left: -100px;
+  transform: rotate(-8deg);
+}
+
+.forest-right {
+  right: -100px;
+  transform: rotate(8deg);
+}
+
+/* =========================================
+   CLOUD
+========================================= */
+
+.cloud {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255,255,255,.55);
+  filter: blur(1px);
+}
+
+.cloud-1 {
+  width: 190px;
+  height: 65px;
+  right: 20%;
+  top: 8%;
+}
+
+.cloud-2 {
+  width: 130px;
+  height: 50px;
+  left: 4%;
+  bottom: 8%;
+}
+
+/* =========================================
+   PRODUCT HERO
+========================================= */
+
+.product-hero {
+  position: absolute;
+  width: 180px;
+  height: 210px;
+  border-radius: 35px 35px 25px 25px;
+  box-shadow: 0 18px 35px rgba(40, 50, 70, .2);
+}
+
+.product-blue {
+  left: 17%;
+  top: 17%;
+  transform: rotate(-7deg);
+  background: #18254d;
+}
+
+.product-white {
+  right: 10%;
+  top: 25%;
+  transform: rotate(7deg);
+  background: #f9f4e7;
+}
+
+.product-shirt-design {
+  margin: 45px auto;
+  width: 120px;
+  text-align: center;
+  color: #6ec2ed;
+  font-weight: 900;
+}
+
+.product-shirt-design span {
+  font-size: 13px;
+}
+
+.product-shirt-design strong {
+  display: block;
+  font-size: 60px;
+  line-height: 1;
+}
+
+.white-design {
+  color: #a34a34;
+}
+
+/* =========================================
+   MASCOT
+========================================= */
+
+.mascot {
+  position: absolute;
+  z-index: 4;
+}
+
+.mascot-main {
+  bottom: 12%;
+  left: 43%;
+}
+
+.mascot-face {
+  position: relative;
+  width: 100px;
+  height: 92px;
+  border-radius: 48% 48% 45% 45%;
+  background: #c8793e;
+  border: 5px solid #743c24;
+  box-shadow: 0 8px 15px rgba(0,0,0,.15);
+}
+
+.mascot-ear {
+  position: absolute;
+  z-index: -1;
+  width: 48px;
+  height: 70px;
+  background: #c8793e;
+  border: 5px solid #743c24;
+  top: -45px;
+}
+
+.mascot-ear.left {
+  left: 2px;
+  transform: rotate(-22deg);
+  border-radius: 80% 20% 20% 30%;
+}
+
+.mascot-ear.right {
+  right: 2px;
+  transform: rotate(22deg);
+  border-radius: 20% 80% 30% 20%;
+}
+
+.eye {
+  position: absolute;
+  top: 32px;
+  width: 18px;
+  height: 23px;
+  border-radius: 50%;
+  background: #63ad55;
+  border: 3px solid #40271d;
+}
+
+.eye::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 7px;
+  top: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: white;
+}
+
+.left-eye {
+  left: 20px;
+}
+
+.right-eye {
+  right: 20px;
+}
+
+.nose {
+  position: absolute;
+  left: 43px;
+  top: 57px;
+  width: 14px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4b251e;
+}
+
+.mascot-body {
+  width: 95px;
+  height: 55px;
+  margin: -2px auto 0;
+  border-radius: 50px 50px 20px 20px;
+  background: #f5f0dc;
+  border: 5px solid #743c24;
+}
+
+/* =========================================
+   SPARKLES
+========================================= */
+
+.sparkle {
+  position: absolute;
+  color: white;
+  font-size: 28px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.sparkle-1 {
+  right: 12%;
+  top: 10%;
+}
+
+.sparkle-2 {
+  left: 12%;
+  top: 35%;
+  animation-delay: .5s;
+}
+
+.sparkle-3 {
+  right: 25%;
+  bottom: 15%;
+  animation-delay: 1s;
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-10px) rotate(10deg);
+  }
+}
+
+/* =========================================
+   SECTION
+========================================= */
+
+.lumina-section-title {
+  color: #754321;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 2px 2px 0 white;
+}
+
+/* =========================================
+   PRODUCT CARD
+========================================= */
+
+.product-card {
+  overflow: hidden;
+  border: 3px solid #e3cfaa;
+  border-radius: 30px;
+  background: #fffaf0;
+  box-shadow:
+    0 8px 0 #d7bd91,
+    0 15px 30px rgba(70, 45, 20, .08);
+  transition: .3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-8px) rotate(-.5deg);
+  box-shadow:
+    0 14px 0 #d0b487,
+    0 22px 40px rgba(70, 45, 20, .13);
+}
+
+.product-image-box {
+  position: relative;
+  height: 270px;
+  margin: 10px;
+  overflow: hidden;
+  border-radius: 23px;
+  background:
+    radial-gradient(circle at 50% 20%, white, transparent 40%),
+    linear-gradient(145deg, #d9ebf5, #b7d7e9);
+}
+
+.product-arrow {
+  display: flex;
+  height: 40px;
+  width: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #754321;
+  color: white;
+  font-weight: 900;
+  transition: .25s;
+}
+
+.product-card:hover .product-arrow {
+  transform: rotate(-20deg) scale(1.1);
+}
+
+.empty-products {
+  border: 3px dashed #d5bb8e;
+  border-radius: 30px;
+  padding: 60px 20px;
+  text-align: center;
+  background: #fffaf0;
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 640px) {
+
+  .lumina-hero {
+    min-height: 680px;
+    padding-top: 105px;
+  }
+
+  .lumina-title {
+    font-size: 4.4rem;
+  }
+
+  .lumina-hero .product-hero {
+    width: 125px;
+    height: 155px;
+    border-radius: 25px;
+  }
+
+  .product-blue {
+    left: 8%;
+  }
+
+  .product-white {
+    right: 5%;
+  }
+
+  .product-shirt-design {
+    margin: 32px auto;
+    width: 90px;
+  }
+
+  .product-shirt-design span {
+    font-size: 9px;
+  }
+
+  .product-shirt-design strong {
+    font-size: 42px;
+  }
+
+  .mascot-main {
+    left: 39%;
+    bottom: 8%;
+    transform: scale(.8);
+  }
+
+  .forest-decoration {
+    width: 120px;
+  }
+
+  .product-image-box {
+    height: 230px;
+  }
+
+  .product-card {
+    border-radius: 25px;
+  }
+}
+
+/* =========================================
+   VERY SMALL PHONE
+========================================= */
+
+@media (max-width: 380px) {
+
+  .lumina-title {
+    font-size: 3.8rem;
+  }
+
+  .lumina-label {
+    font-size: 9px;
+    padding: 8px 13px;
+  }
+
+  .lumina-hero {
+    min-height: 640px;
+  }
+
+  .product-hero {
+    width: 110px !important;
+    height: 140px !important;
+  }
+
+  .mascot-main {
+    transform: scale(.7);
+  }
+}
+.nav-link {
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: #493521;
+  font-size: 13px;
+  font-weight: 900;
+  transition: .2s;
+}
+
+.nav-link:hover {
+  background: #754321;
+  color: white;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  color: #493521;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.mobile-nav-link:hover {
+  background: #eee0c2;
 }
