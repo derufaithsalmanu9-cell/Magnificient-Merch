@@ -36,7 +36,7 @@ export default async function HomePage() {
               </h1>
 
               <p className="mx-auto mt-6 max-w-lg text-base leading-7 text-[#493521]/75 sm:text-lg lg:mx-0">
-                Koleksi resmi Magnificent untuk menjadi bagian
+                Koleksi resmi Magnificent Smart untuk menjadi bagian
                 dari momen spesial kita bersama.
               </p>
 
