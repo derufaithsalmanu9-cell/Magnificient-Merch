@@ -36,6 +36,7 @@ export default function ProductDetail({
   const [selectedSize, setSelectedSize] = useState("-");
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
+  const [message, setMessage] = useState("");
 
   // =========================
   // NORMALIZE SIZE
@@ -115,28 +116,115 @@ export default function ProductDetail({
   }
 
   // =========================
-  // CHECKOUT
+  // VALIDATION
   // =========================
 
-  function handleCheckout() {
+  function validateProduct() {
+    setMessage("");
+
     if (hasSizes && selectedSize === "-") {
-      alert("Silakan pilih ukuran terlebih dahulu.");
-      return;
+      setMessage("Silakan pilih ukuran terlebih dahulu.");
+      return false;
     }
 
     if (currentStock <= 0) {
-      alert("Stok produk sedang habis.");
-      return;
+      setMessage("Stok produk sedang habis.");
+      return false;
     }
 
     if (quantity > currentStock) {
-      alert(
+      setMessage(
         `Stok hanya tersedia ${currentStock} pcs.`
       );
-      return;
+      return false;
     }
 
+    return true;
+  }
+
+  // =========================
+  // ADD TO CART
+  // =========================
+
+  function handleAddToCart() {
+    if (!validateProduct()) return;
+
     setAdding(true);
+
+    const cartItem: CartItem = {
+      id: product.id,
+      name: product.name,
+      price: currentPrice,
+      quantity,
+      size: selectedSize,
+      image: product.image,
+    };
+
+    let existingCart: CartItem[] = [];
+
+    try {
+      const savedCart =
+        localStorage.getItem("magnificent-cart");
+
+      if (savedCart) {
+        existingCart = JSON.parse(savedCart);
+
+        if (!Array.isArray(existingCart)) {
+          existingCart = [];
+        }
+      }
+    } catch {
+      existingCart = [];
+    }
+
+    // Cari produk yang sama + ukuran yang sama
+    const existingIndex =
+      existingCart.findIndex(
+        (item) =>
+          item.id === product.id &&
+          item.size === selectedSize
+      );
+
+    if (existingIndex !== -1) {
+      const newQuantity =
+        existingCart[existingIndex].quantity +
+        quantity;
+
+      if (newQuantity > currentStock) {
+        setMessage(
+          `Jumlah melebihi stok. Maksimal ${currentStock} pcs.`
+        );
+        setAdding(false);
+        return;
+      }
+
+      existingCart[existingIndex] = {
+        ...existingCart[existingIndex],
+        quantity: newQuantity,
+        price: currentPrice,
+      };
+    } else {
+      existingCart.push(cartItem);
+    }
+
+    localStorage.setItem(
+      "magnificent-cart",
+      JSON.stringify(existingCart)
+    );
+
+    setMessage(
+      `${product.name} berhasil ditambahkan ke keranjang.`
+    );
+
+    setAdding(false);
+  }
+
+  // =========================
+  // BUY NOW
+  // =========================
+
+  function handleBuyNow() {
+    if (!validateProduct()) return;
 
     const cartItem: CartItem = {
       id: product.id,
@@ -175,6 +263,7 @@ export default function ProductDetail({
 
           {/* IMAGE */}
           <div className="flex aspect-square items-center justify-center overflow-hidden rounded-3xl bg-white">
+
             {product.image ? (
               <img
                 src={product.image}
@@ -186,6 +275,7 @@ export default function ProductDetail({
                 {product.name.toUpperCase()}
               </span>
             )}
+
           </div>
 
           {/* INFORMATION */}
@@ -207,6 +297,7 @@ export default function ProductDetail({
 
             {/* PRICE */}
             <div className="mt-8">
+
               <p className="text-3xl font-black">
                 Rp{currentPrice.toLocaleString("id-ID")}
               </p>
@@ -216,16 +307,19 @@ export default function ProductDetail({
                   ? `${currentStock} pcs tersedia`
                   : "Stok habis"}
               </p>
+
             </div>
 
             {/* SIZE */}
             {hasSizes && (
               <div className="mt-8">
+
                 <label className="text-sm font-bold">
                   Pilih Ukuran
                 </label>
 
                 <div className="mt-3 flex flex-wrap gap-3">
+
                   {sizes.map((item) => {
                     const selected =
                       selectedSize === item.size;
@@ -241,6 +335,7 @@ export default function ProductDetail({
                         onClick={() => {
                           setSelectedSize(item.size);
                           setQuantity(1);
+                          setMessage("");
                         }}
                         className={`rounded-xl border px-5 py-3 text-sm font-bold transition ${
                           selected
@@ -254,12 +349,15 @@ export default function ProductDetail({
                       </button>
                     );
                   })}
+
                 </div>
+
               </div>
             )}
 
             {/* QUANTITY */}
             <div className="mt-8">
+
               <label className="text-sm font-bold">
                 Jumlah
               </label>
@@ -291,6 +389,7 @@ export default function ProductDetail({
                 </button>
 
               </div>
+
             </div>
 
             {/* TOTAL */}
@@ -309,37 +408,65 @@ export default function ProductDetail({
 
             </div>
 
-            {/* CHECKOUT */}
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={
-                adding ||
-                currentStock <= 0 ||
-                (hasSizes &&
-                  selectedSize === "-")
-              }
-              className={`mt-6 w-full rounded-full px-7 py-4 text-sm font-bold transition ${
-                adding ||
-                currentStock <= 0 ||
-                (hasSizes &&
-                  selectedSize === "-")
-                  ? "cursor-not-allowed bg-black/10 text-black/30"
-                  : "bg-black text-white hover:bg-red-600"
-              }`}
-            >
-              {adding
-                ? "Membuka Checkout..."
-                : currentStock <= 0
-                  ? "Stok Habis"
-                  : hasSizes &&
-                      selectedSize === "-"
-                    ? "Pilih Ukuran Dahulu"
-                    : "Checkout Sekarang →"}
-            </button>
+            {/* MESSAGE */}
+            {message && (
+              <div className="mt-5 rounded-2xl bg-white px-5 py-4 text-sm font-semibold text-black">
+                {message}
+              </div>
+            )}
+
+            {/* BUTTONS */}
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+              {/* ADD TO CART */}
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={
+                  adding ||
+                  currentStock <= 0 ||
+                  (hasSizes &&
+                    selectedSize === "-")
+                }
+                className={`rounded-full px-7 py-4 text-sm font-bold transition ${
+                  adding ||
+                  currentStock <= 0 ||
+                  (hasSizes &&
+                    selectedSize === "-")
+                    ? "cursor-not-allowed bg-black/10 text-black/30"
+                    : "border border-black bg-white text-black hover:bg-black hover:text-white"
+                }`}
+              >
+                {adding
+                  ? "Menambahkan..."
+                  : "🛒 Tambah ke Keranjang"}
+              </button>
+
+              {/* BUY NOW */}
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                disabled={
+                  currentStock <= 0 ||
+                  (hasSizes &&
+                    selectedSize === "-")
+                }
+                className={`rounded-full px-7 py-4 text-sm font-bold transition ${
+                  currentStock <= 0 ||
+                  (hasSizes &&
+                    selectedSize === "-")
+                    ? "cursor-not-allowed bg-black/10 text-black/30"
+                    : "bg-black text-white hover:bg-red-600"
+                }`}
+              >
+                Beli Sekarang →
+              </button>
+
+            </div>
 
             <p className="mt-4 text-center text-xs text-black/30">
-              Produk akan langsung dibawa ke halaman checkout.
+              Tambahkan beberapa produk ke keranjang
+              atau langsung beli sekarang.
             </p>
 
           </div>
