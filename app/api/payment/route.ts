@@ -3,195 +3,125 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
-const BUCKET = "payment-proofs";
-
-function checkAdmin(request: NextRequest) {
-  const cookie =
-    request.cookies.get("magnificent_admin");
-
-  return Boolean(cookie?.value);
+function normalizeWhatsapp(value: string) {
+  return value.replace(/\D/g, "");
 }
 
 export async function GET(request: NextRequest) {
   try {
-    if (!checkAdmin(request)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const { searchParams } = new URL(request.url);
 
-    const { data: orders, error } =
-      await supabaseAdmin
-        .from("orders")
-        .select(
-          `
-          id,
-          order_code,
-          customer_name,
-          whatsapp,
-          class_name,
-          address,
-          total,
-          payment_method,
-          payment_proof,
-          payment_verified_at,
-          payment_rejected_at,
-          payment_rejection_note,
-          status,
-          created_at
-          `
-        )
-        .not("payment_proof", "is", null)
-        .order("created_at", {
-          ascending: false,
-        });
+    const orderCode = searchParams
+      .get("code")
+      ?.trim()
+      .toUpperCase();
 
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
+    const whatsapp = searchParams
+      .get("whatsapp")
+      ?.trim();
 
-    const result = [];
-
-    for (const order of orders || []) {
-      let proofUrl = null;
-
-      if (order.payment_proof) {
-        const { data: signedData } =
-          await supabaseAdmin.storage
-            .from(BUCKET)
-            .createSignedUrl(
-              order.payment_proof,
-              60 * 60
-            );
-
-        proofUrl =
-          signedData?.signedUrl || null;
-      }
-
-      result.push({
-        ...order,
-        proof_url: proofUrl,
-      });
-    }
-
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      {
-        error:
-          "Gagal mengambil bukti pembayaran.",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    if (!checkAdmin(request)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-
-    const {
-      id,
-      action,
-      rejection_note,
-    } = body;
-
-    if (!id) {
+    if (!orderCode) {
       return NextResponse.json(
         {
-          error: "ID pesanan wajib diisi.",
+          error: "Kode pesanan wajib diisi.",
         },
         { status: 400 }
       );
     }
 
+    if (!whatsapp) {
+      return NextResponse.json(
+        {
+          error: "Nomor WhatsApp wajib diisi.",
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log(
+      "Checking payment order:",
+      orderCode
+    );
+
+    const { data: order, error } =
+      await supabaseAdmin
+        .from("orders")
+        .select(`
+          order_code,
+          customer_name,
+          whatsapp,
+          total,
+          payment_method,
+          status,
+          payment_proof
+        `)
+        .eq("order_code", orderCode)
+        .maybeSingle();
+
+    if (error) {
+      console.error(
+        "Payment order error:",
+        error
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Gagal mengambil data pesanan.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!order) {
+      return NextResponse.json(
+        {
+          error:
+            "Kode pesanan tidak ditemukan.",
+        },
+        { status: 404 }
+      );
+    }
+
+    // =========================
+    // VALIDASI WHATSAPP
+    // =========================
+
     if (
-      action !== "verify" &&
-      action !== "reject"
+      normalizeWhatsapp(order.whatsapp || "") !==
+      normalizeWhatsapp(whatsapp)
     ) {
       return NextResponse.json(
         {
           error:
-            "Action harus verify atau reject.",
+            "Nomor WhatsApp tidak sesuai dengan pesanan.",
         },
-        { status: 400 }
-      );
-    }
-
-    if (action === "verify") {
-      const { data, error } =
-        await supabaseAdmin
-          .from("orders")
-          .update({
-            status: "Pembayaran Diterima",
-            payment_verified_at:
-              new Date().toISOString(),
-            payment_rejected_at: null,
-            payment_rejection_note: null,
-          })
-          .eq("id", id)
-          .select()
-          .single();
-
-      if (error) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        order: data,
-      });
-    }
-
-    const { data, error } =
-      await supabaseAdmin
-        .from("orders")
-        .update({
-          status: "Menunggu Pembayaran",
-          payment_rejected_at:
-            new Date().toISOString(),
-          payment_rejection_note:
-            rejection_note?.trim() ||
-            "Bukti pembayaran ditolak.",
-        })
-        .eq("id", id)
-        .select()
-        .single();
-
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
+        { status: 403 }
       );
     }
 
     return NextResponse.json({
-      success: true,
-      order: data,
+      order: {
+        order_code: order.order_code,
+        customer_name: order.customer_name,
+        total: order.total,
+        payment_method: order.payment_method,
+        status: order.status,
+        has_payment_proof:
+          Boolean(order.payment_proof),
+      },
     });
+
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Payment API error:",
+      error
+    );
 
     return NextResponse.json(
       {
         error:
-          "Gagal memperbarui pembayaran.",
+          "Terjadi kesalahan pada server.",
       },
       { status: 500 }
     );
