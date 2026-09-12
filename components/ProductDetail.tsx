@@ -1,22 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
-type SizeOption = {
-  size: string;
-  price: number;
-  stock: number;
-};
+type SizeOption =
+  | string
+  | {
+      size: string;
+      price?: number;
+      stock?: number;
+    };
 
 type Product = {
   id: string;
   name: string;
-  description: string | null;
+  description: string;
   price: number;
   stock: number;
-  image: string | null;
-  sizes: unknown;
+  image?: string | null;
+  sizes?: SizeOption[];
 };
 
 type CartItem = {
@@ -24,8 +25,8 @@ type CartItem = {
   name: string;
   price: number;
   quantity: number;
-  size: string;
-  image: string | null;
+  size?: string;
+  image?: string | null;
 };
 
 export default function ProductDetail({
@@ -33,65 +34,37 @@ export default function ProductDetail({
 }: {
   product: Product;
 }) {
-  const [selectedSize, setSelectedSize] = useState("-");
+  const [selectedSize, setSelectedSize] = useState<string | undefined>(
+    product.sizes && product.sizes.length > 0
+      ? typeof product.sizes[0] === "string"
+        ? product.sizes[0]
+        : product.sizes[0].size
+      : undefined
+  );
+
   const [quantity, setQuantity] = useState(1);
-  const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState("");
+  const [adding, setAdding] = useState(false);
 
-  // =========================
-  // NORMALIZE SIZE
-  // =========================
-
-  const sizes: SizeOption[] = [];
-
-  if (Array.isArray(product.sizes)) {
-    for (const item of product.sizes) {
-      if (typeof item === "string") {
-        sizes.push({
-          size: item,
-          price: product.price,
-          stock: product.stock,
-        });
-
-        continue;
-      }
-
-      if (
-        typeof item === "object" &&
-        item !== null &&
-        "size" in item
-      ) {
-        const value = item as {
-          size?: unknown;
-          price?: unknown;
-          stock?: unknown;
-        };
-
-        if (typeof value.size !== "string") {
-          continue;
-        }
-
-        sizes.push({
-          size: value.size,
-          price:
-            typeof value.price === "number"
-              ? value.price
-              : product.price,
-          stock:
-            typeof value.stock === "number"
-              ? value.stock
-              : product.stock,
-        });
-      }
+  const sizes = (product.sizes || []).map((item) => {
+    if (typeof item === "string") {
+      return {
+        size: item,
+        price: product.price,
+        stock: product.stock,
+      };
     }
-  }
 
-  const hasSizes = sizes.length > 0;
+    return {
+      size: item.size,
+      price: item.price ?? product.price,
+      stock: item.stock ?? product.stock,
+    };
+  });
 
-  const selectedSizeData =
-    sizes.find(
-      (item) => item.size === selectedSize
-    ) ?? null;
+  const selectedSizeData = sizes.find(
+    (item) => item.size === selectedSize
+  );
 
   const currentPrice =
     selectedSizeData?.price ?? product.price;
@@ -99,132 +72,88 @@ export default function ProductDetail({
   const currentStock =
     selectedSizeData?.stock ?? product.stock;
 
-  // =========================
-  // QUANTITY
-  // =========================
+  const formatPrice = (price: number) =>
+    `Rp${Number(price).toLocaleString("id-ID")}`;
 
-  function decreaseQuantity() {
-    setQuantity((value) =>
-      Math.max(1, value - 1)
-    );
-  }
-
-  function increaseQuantity() {
-    setQuantity((value) =>
-      Math.min(currentStock, value + 1)
-    );
-  }
-
-  // =========================
-  // VALIDATION
-  // =========================
-
-  function validateProduct() {
-    setMessage("");
-
-    if (hasSizes && selectedSize === "-") {
-      setMessage("Silakan pilih ukuran terlebih dahulu.");
-      return false;
-    }
-
+  const validate = () => {
     if (currentStock <= 0) {
-      setMessage("Stok produk sedang habis.");
+      setMessage("Produk sedang habis.");
       return false;
     }
 
     if (quantity > currentStock) {
-      setMessage(
-        `Stok hanya tersedia ${currentStock} pcs.`
-      );
+      setMessage(`Stok hanya tersedia ${currentStock}.`);
+      return false;
+    }
+
+    if (sizes.length > 0 && !selectedSize) {
+      setMessage("Silakan pilih ukuran terlebih dahulu.");
       return false;
     }
 
     return true;
-  }
+  };
 
-  // =========================
-  // ADD TO CART
-  // =========================
-
-  function handleAddToCart() {
-    if (!validateProduct()) return;
+  const handleAddToCart = () => {
+    if (!validate()) return;
 
     setAdding(true);
-
-    const cartItem: CartItem = {
-      id: product.id,
-      name: product.name,
-      price: currentPrice,
-      quantity,
-      size: selectedSize,
-      image: product.image,
-    };
-
-    let existingCart: CartItem[] = [];
+    setMessage("");
 
     try {
-      const savedCart =
-        localStorage.getItem("magnificent-cart");
+      const existingCart: CartItem[] = JSON.parse(
+        localStorage.getItem("magnificent-cart") || "[]"
+      );
 
-      if (savedCart) {
-        existingCart = JSON.parse(savedCart);
-
-        if (!Array.isArray(existingCart)) {
-          existingCart = [];
-        }
-      }
-    } catch {
-      existingCart = [];
-    }
-
-    // Cari produk yang sama + ukuran yang sama
-    const existingIndex =
-      existingCart.findIndex(
+      const existingIndex = existingCart.findIndex(
         (item) =>
           item.id === product.id &&
           item.size === selectedSize
       );
 
-    if (existingIndex !== -1) {
-      const newQuantity =
-        existingCart[existingIndex].quantity +
-        quantity;
+      if (existingIndex >= 0) {
+        const newQuantity =
+          existingCart[existingIndex].quantity + quantity;
 
-      if (newQuantity > currentStock) {
-        setMessage(
-          `Jumlah melebihi stok. Maksimal ${currentStock} pcs.`
-        );
-        setAdding(false);
-        return;
+        if (newQuantity > currentStock) {
+          setMessage(
+            `Jumlah melebihi stok. Maksimal ${currentStock}.`
+          );
+          setAdding(false);
+          return;
+        }
+
+        existingCart[existingIndex].quantity = newQuantity;
+      } else {
+        existingCart.push({
+          id: product.id,
+          name: product.name,
+          price: currentPrice,
+          quantity,
+          size: selectedSize,
+          image: product.image,
+        });
       }
 
-      existingCart[existingIndex] = {
-        ...existingCart[existingIndex],
-        quantity: newQuantity,
-        price: currentPrice,
-      };
-    } else {
-      existingCart.push(cartItem);
+      localStorage.setItem(
+        "magnificent-cart",
+        JSON.stringify(existingCart)
+      );
+
+      // Memberi tahu Navbar bahwa isi keranjang berubah
+      window.dispatchEvent(new Event("cart-updated"));
+
+      setMessage("✓ Produk berhasil ditambahkan ke keranjang.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Gagal menambahkan produk ke keranjang.");
     }
 
-    localStorage.setItem(
-      "magnificent-cart",
-      JSON.stringify(existingCart)
-    );
-
-    setMessage(
-      `${product.name} berhasil ditambahkan ke keranjang.`
-    );
-
     setAdding(false);
-  }
+  };
 
-  // =========================
-  // BUY NOW
-  // =========================
-
-  function handleBuyNow() {
-    if (!validateProduct()) return;
+  const handleBuyNow = () => {
+    if (!validate()) return;
 
     const cartItem: CartItem = {
       id: product.id,
@@ -241,236 +170,169 @@ export default function ProductDetail({
     );
 
     window.location.href = "/checkout";
-  }
-
-  // =========================
-  // UI
-  // =========================
+  };
 
   return (
-    <main className="min-h-screen bg-[#f5f3ee] px-6 py-28 text-black">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen bg-[#f5f3ee] text-black">
+      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-24 lg:grid-cols-2">
 
-        {/* BACK */}
-        <Link
-          href="/merch"
-          className="text-sm font-bold text-black/50 transition hover:text-red-600"
-        >
-          ← Kembali ke Merchandise
-        </Link>
-
-        <section className="mt-8 grid gap-10 lg:grid-cols-2">
-
-          {/* IMAGE */}
-          <div className="flex aspect-square items-center justify-center overflow-hidden rounded-3xl bg-white">
-
-            {product.image ? (
-              <img
-                src={product.image}
-                alt={product.name}
-                className="h-full w-full object-cover object-center"
-              />
-            ) : (
-              <span className="px-10 text-center text-5xl font-black tracking-tighter text-black/10">
-                {product.name.toUpperCase()}
+        {/* IMAGE */}
+        <div className="relative overflow-hidden rounded-[28px] bg-white">
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="aspect-square h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex aspect-square items-center justify-center">
+              <span className="text-5xl font-black text-black/10">
+                MERCH
               </span>
-            )}
+            </div>
+          )}
+        </div>
 
-          </div>
+        {/* DETAIL */}
+        <div className="flex flex-col">
 
-          {/* INFORMATION */}
-          <div className="flex flex-col justify-center">
+          <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-600">
+            Official Merchandise
+          </p>
 
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-600">
-              Official Merchandise
+          <h1 className="mt-4 text-5xl font-black tracking-tight sm:text-6xl">
+            {product.name}
+          </h1>
+
+          <p className="mt-5 text-black/50">
+            {product.description || "Official Edition"}
+          </p>
+
+          <p className="mt-8 text-3xl font-black">
+            {formatPrice(currentPrice)}
+          </p>
+
+          <p className="mt-1 text-sm text-black/50">
+            {currentStock} pcs tersedia
+          </p>
+
+          {/* SIZE */}
+          {sizes.length > 0 && (
+            <div className="mt-8">
+              <p className="mb-3 text-sm font-bold">
+                Ukuran
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {sizes.map((item) => (
+                  <button
+                    key={item.size}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSize(item.size);
+                      setMessage("");
+                    }}
+                    className={`rounded-xl border-2 px-5 py-3 text-sm font-bold transition ${
+                      selectedSize === item.size
+                        ? "border-black bg-black text-white"
+                        : "border-black/10 bg-white hover:border-black"
+                    }`}
+                  >
+                    {item.size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* QUANTITY */}
+          <div className="mt-8">
+            <p className="mb-3 text-sm font-bold">
+              Jumlah
             </p>
 
-            <h1 className="mt-4 text-5xl font-black tracking-tight sm:text-6xl">
-              {product.name}
-            </h1>
+            <div className="flex w-fit items-center overflow-hidden rounded-xl border border-black/10 bg-white">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuantity((q) => Math.max(1, q - 1));
+                  setMessage("");
+                }}
+                className="flex h-12 w-12 items-center justify-center text-xl font-bold hover:bg-black/5"
+              >
+                −
+              </button>
 
-            {product.description && (
-              <p className="mt-5 max-w-xl text-base leading-7 text-black/50">
-                {product.description}
-              </p>
-            )}
+              <span className="flex h-12 w-12 items-center justify-center font-bold">
+                {quantity}
+              </span>
 
-            {/* PRICE */}
-            <div className="mt-8">
-
-              <p className="text-3xl font-black">
-                Rp{currentPrice.toLocaleString("id-ID")}
-              </p>
-
-              <p className="mt-2 text-sm text-black/40">
-                {currentStock > 0
-                  ? `${currentStock} pcs tersedia`
-                  : "Stok habis"}
-              </p>
-
+              <button
+                type="button"
+                onClick={() => {
+                  setQuantity((q) =>
+                    Math.min(currentStock, q + 1)
+                  );
+                  setMessage("");
+                }}
+                className="flex h-12 w-12 items-center justify-center text-xl font-bold hover:bg-black/5"
+              >
+                +
+              </button>
             </div>
+          </div>
 
-            {/* SIZE */}
-            {hasSizes && (
-              <div className="mt-8">
-
-                <label className="text-sm font-bold">
-                  Pilih Ukuran
-                </label>
-
-                <div className="mt-3 flex flex-wrap gap-3">
-
-                  {sizes.map((item) => {
-                    const selected =
-                      selectedSize === item.size;
-
-                    const outOfStock =
-                      item.stock <= 0;
-
-                    return (
-                      <button
-                        key={item.size}
-                        type="button"
-                        disabled={outOfStock}
-                        onClick={() => {
-                          setSelectedSize(item.size);
-                          setQuantity(1);
-                          setMessage("");
-                        }}
-                        className={`rounded-xl border px-5 py-3 text-sm font-bold transition ${
-                          selected
-                            ? "border-black bg-black text-white"
-                            : outOfStock
-                              ? "cursor-not-allowed border-black/5 bg-black/5 text-black/20"
-                              : "border-black/10 bg-white hover:border-black"
-                        }`}
-                      >
-                        {item.size}
-                      </button>
-                    );
-                  })}
-
-                </div>
-
-              </div>
-            )}
-
-            {/* QUANTITY */}
-            <div className="mt-8">
-
-              <label className="text-sm font-bold">
-                Jumlah
-              </label>
-
-              <div className="mt-3 flex w-fit items-center overflow-hidden rounded-xl border border-black/10 bg-white">
-
-                <button
-                  type="button"
-                  onClick={decreaseQuantity}
-                  disabled={quantity <= 1}
-                  className="flex h-12 w-12 items-center justify-center text-xl font-bold hover:bg-black hover:text-white disabled:opacity-30"
-                >
-                  −
-                </button>
-
-                <span className="flex h-12 w-14 items-center justify-center font-bold">
-                  {quantity}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={increaseQuantity}
-                  disabled={
-                    quantity >= currentStock
-                  }
-                  className="flex h-12 w-12 items-center justify-center text-xl font-bold hover:bg-black hover:text-white disabled:opacity-30"
-                >
-                  +
-                </button>
-
-              </div>
-
-            </div>
-
-            {/* TOTAL */}
-            <div className="mt-8 flex items-center justify-between border-t border-black/10 pt-6">
-
+          {/* TOTAL */}
+          <div className="mt-8 border-t border-black/10 pt-7">
+            <div className="flex items-center justify-between">
               <span className="text-black/50">
                 Total
               </span>
 
               <span className="text-2xl font-black">
-                Rp
-                {(
-                  currentPrice * quantity
-                ).toLocaleString("id-ID")}
+                {formatPrice(currentPrice * quantity)}
               </span>
-
             </div>
+          </div>
 
-            {/* MESSAGE */}
-            {message && (
-              <div className="mt-5 rounded-2xl bg-white px-5 py-4 text-sm font-semibold text-black">
-                {message}
-              </div>
-            )}
-
-            {/* BUTTONS */}
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-
-              {/* ADD TO CART */}
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={
-                  adding ||
-                  currentStock <= 0 ||
-                  (hasSizes &&
-                    selectedSize === "-")
-                }
-                className={`rounded-full px-7 py-4 text-sm font-bold transition ${
-                  adding ||
-                  currentStock <= 0 ||
-                  (hasSizes &&
-                    selectedSize === "-")
-                    ? "cursor-not-allowed bg-black/10 text-black/30"
-                    : "border border-black bg-white text-black hover:bg-black hover:text-white"
-                }`}
-              >
-                {adding
-                  ? "Menambahkan..."
-                  : "🛒 Tambah ke Keranjang"}
-              </button>
-
-              {/* BUY NOW */}
-              <button
-                type="button"
-                onClick={handleBuyNow}
-                disabled={
-                  currentStock <= 0 ||
-                  (hasSizes &&
-                    selectedSize === "-")
-                }
-                className={`rounded-full px-7 py-4 text-sm font-bold transition ${
-                  currentStock <= 0 ||
-                  (hasSizes &&
-                    selectedSize === "-")
-                    ? "cursor-not-allowed bg-black/10 text-black/30"
-                    : "bg-black text-white hover:bg-red-600"
-                }`}
-              >
-                Beli Sekarang →
-              </button>
-
+          {/* MESSAGE */}
+          {message && (
+            <div className="mt-5 rounded-xl bg-white px-4 py-3 text-center text-sm font-bold">
+              {message}
             </div>
+          )}
 
-            <p className="mt-4 text-center text-xs text-black/30">
-              Tambahkan beberapa produk ke keranjang
-              atau langsung beli sekarang.
-            </p>
+          {/* BUTTONS */}
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={adding || currentStock <= 0}
+              className="rounded-full border-2 border-black bg-white px-6 py-4 text-sm font-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {adding
+                ? "Menambahkan..."
+                : "🛒 Tambah ke Keranjang"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={currentStock <= 0}
+              className="rounded-full bg-black px-6 py-4 text-sm font-black text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Beli Sekarang →
+            </button>
 
           </div>
-        </section>
+
+          <p className="mt-4 text-center text-xs text-black/40">
+            Tambahkan ke keranjang untuk membeli beberapa
+            merchandise sekaligus.
+          </p>
+
+        </div>
       </div>
     </main>
   );
