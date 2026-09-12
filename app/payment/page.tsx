@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type Order = {
@@ -14,31 +13,29 @@ type Order = {
 };
 
 export default function PaymentPage() {
-  const searchParams = useSearchParams();
-
-  const [orderCode, setOrderCode] = useState(
-    searchParams.get("code") || ""
-  );
-
+  const [orderCode, setOrderCode] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
 
-  const [order, setOrder] =
-    useState<Order | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
 
-  const [file, setFile] =
-    useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null);
 
-  const [loadingOrder, setLoadingOrder] =
-    useState(false);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const [uploading, setUploading] =
-    useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const [message, setMessage] =
-    useState("");
+  // Ambil ?code=MAG-XXXXXX dari URL
+  // tanpa useSearchParams agar aman saat build/prerender.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
 
-  const [error, setError] =
-    useState("");
+    if (code) {
+      setOrderCode(code.toUpperCase());
+    }
+  }, []);
 
   async function checkOrder() {
     setError("");
@@ -73,8 +70,7 @@ export default function PaymentPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
-            "Pesanan tidak ditemukan."
+          data.error || "Pesanan tidak ditemukan."
         );
       }
 
@@ -94,8 +90,13 @@ export default function PaymentPage() {
     setMessage("");
 
     if (!order) {
+      setError("Cari pesanan terlebih dahulu.");
+      return;
+    }
+
+    if (order.payment_method !== "Transfer") {
       setError(
-        "Cari pesanan terlebih dahulu."
+        "Pesanan ini menggunakan pembayaran Cash dan tidak memerlukan bukti transfer."
       );
       return;
     }
@@ -103,6 +104,26 @@ export default function PaymentPage() {
     if (!file) {
       setError(
         "Pilih bukti transfer terlebih dahulu."
+      );
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError(
+        "Ukuran file maksimal 5 MB."
+      );
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        "Format file harus JPG, PNG, atau WEBP."
       );
       return;
     }
@@ -136,8 +157,7 @@ export default function PaymentPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
-            "Upload gagal."
+          data.error || "Upload gagal."
         );
       }
 
@@ -184,7 +204,6 @@ export default function PaymentPage() {
 
         {/* SEARCH */}
         <div className="mt-12 rounded-3xl bg-white p-7 shadow-sm sm:p-10">
-
           <div className="space-y-5">
 
             <div>
@@ -295,8 +314,25 @@ export default function PaymentPage() {
 
             </div>
 
+            {/* CASH */}
+            {order.payment_method === "Cash" &&
+              !order.has_payment_proof && (
+                <div className="mt-8 rounded-2xl bg-white/10 p-5">
+                  <p className="font-bold">
+                    💵 Pembayaran Cash
+                  </p>
+
+                  <p className="mt-2 text-sm text-white/50">
+                    Pesanan ini menggunakan pembayaran
+                    Cash. Tidak perlu mengupload bukti
+                    transfer.
+                  </p>
+                </div>
+              )}
+
             {/* UPLOAD */}
-            {!order.has_payment_proof &&
+            {order.payment_method === "Transfer" &&
+              !order.has_payment_proof &&
               order.status !==
                 "Pembayaran Diterima" && (
                 <div className="mt-8 border-t border-white/10 pt-7">
@@ -306,8 +342,7 @@ export default function PaymentPage() {
                   </p>
 
                   <p className="mt-2 text-sm text-white/40">
-                    JPG, PNG, atau WEBP • Maksimal
-                    5 MB
+                    JPG, PNG, atau WEBP • Maksimal 5 MB
                   </p>
 
                   <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 px-5 py-10 text-center transition hover:border-white/50">
@@ -328,11 +363,11 @@ export default function PaymentPage() {
                       className="hidden"
                       onChange={(e) =>
                         setFile(
-                          e.target.files?.[0] ||
-                            null
+                          e.target.files?.[0] || null
                         )
                       }
                     />
+
                   </label>
 
                   <button
@@ -351,6 +386,7 @@ export default function PaymentPage() {
                 </div>
               )}
 
+            {/* ALREADY SENT */}
             {order.has_payment_proof && (
               <div className="mt-8 rounded-2xl bg-white/10 p-5">
                 <p className="font-bold">
@@ -358,8 +394,7 @@ export default function PaymentPage() {
                 </p>
 
                 <p className="mt-2 text-sm text-white/40">
-                  Silakan tunggu verifikasi dari
-                  admin.
+                  Silakan tunggu verifikasi dari admin.
                 </p>
               </div>
             )}
