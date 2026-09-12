@@ -24,13 +24,22 @@ export async function GET(request: NextRequest) {
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .select(
-        "order_code, customer_name, class_name, items, total, status, created_at"
+        `
+        order_code,
+        customer_name,
+        class_name,
+        items,
+        total,
+        status,
+        payment_method,
+        created_at
+        `
       )
       .eq("order_code", orderCode)
       .maybeSingle();
 
     if (error) {
-      console.error(error);
+      console.error("Supabase error:", error);
 
       return NextResponse.json(
         {
@@ -53,7 +62,7 @@ export async function GET(request: NextRequest) {
       order,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Status API error:", error);
 
     return NextResponse.json(
       {
