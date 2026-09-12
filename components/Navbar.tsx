@@ -7,31 +7,40 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
+  const updateCart = () => {
+    try {
+      const cart = JSON.parse(
+        localStorage.getItem("magnificent-cart") || "[]"
+      );
+
+      const count = cart.reduce(
+        (total: number, item: any) =>
+          total + Number(item.quantity || 0),
+        0
+      );
+
+      setCartCount(count);
+    } catch {
+      setCartCount(0);
+    }
+  };
+
   useEffect(() => {
-    const updateCart = () => {
-      try {
-        const cart = JSON.parse(
-          localStorage.getItem("magnificent-cart") || "[]"
-        );
-
-        const count = cart.reduce(
-          (total: number, item: any) =>
-            total + Number(item.quantity || 0),
-          0
-        );
-
-        setCartCount(count);
-      } catch {
-        setCartCount(0);
-      }
-    };
-
     updateCart();
 
+    // Update ketika localStorage berubah dari tab lain
     window.addEventListener("storage", updateCart);
+
+    // Update ketika komponen menerima event custom
+    window.addEventListener("cart-updated", updateCart);
+
+    // Update ketika kembali ke halaman
+    window.addEventListener("focus", updateCart);
 
     return () => {
       window.removeEventListener("storage", updateCart);
+      window.removeEventListener("cart-updated", updateCart);
+      window.removeEventListener("focus", updateCart);
     };
   }, []);
 
@@ -53,32 +62,24 @@ export default function Navbar() {
             <div className="font-serif text-lg font-black text-[#754321]">
               MAGNIFICIENT
             </div>
+
             <div className="text-[8px] font-bold uppercase tracking-[.25em] text-[#754321]/50">
               Official Merch
             </div>
           </div>
         </Link>
 
-        {/* DESKTOP */}
+        {/* DESKTOP MENU */}
         <div className="hidden items-center gap-1 md:flex">
-          <Link
-            href="/"
-            className="nav-link"
-          >
+          <Link href="/" className="nav-link">
             Beranda
           </Link>
 
-          <Link
-            href="/merch"
-            className="nav-link"
-          >
+          <Link href="/merch" className="nav-link">
             Merchandise
           </Link>
 
-          <Link
-            href="/status"
-            className="nav-link"
-          >
+          <Link href="/status" className="nav-link">
             Cek Pesanan
           </Link>
         </div>
@@ -89,13 +90,14 @@ export default function Navbar() {
           {/* CART */}
           <Link
             href="/checkout"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[#4c83c7] text-lg text-white shadow-[0_3px_0_#285b92]"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[#4c83c7] text-lg text-white shadow-[0_3px_0_#285b92] transition hover:-translate-y-0.5"
+            aria-label="Keranjang"
           >
             🛒
 
             {cartCount > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#b94432] px-1 text-[9px] font-black text-white">
-                {cartCount}
+                {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}
           </Link>
@@ -139,6 +141,18 @@ export default function Navbar() {
           >
             🛍️
             <span>Merchandise</span>
+          </Link>
+
+          <Link
+            href="/checkout"
+            onClick={() => setOpen(false)}
+            className="mobile-nav-link"
+          >
+            🛒
+            <span>
+              Keranjang
+              {cartCount > 0 && ` (${cartCount})`}
+            </span>
           </Link>
 
           <Link
