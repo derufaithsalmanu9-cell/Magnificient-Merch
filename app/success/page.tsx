@@ -29,11 +29,12 @@ export default function SuccessPage() {
         </p>
 
         <h1 className="mt-4 text-5xl font-black">
-          PESANAN BERHASIL.
+          PESANAN BERHASIL
+          batas pembayaran 21 Sept pukul 10.15.
         </h1>
 
         <p className="mt-5 text-black/50">
-          Pesanan kamu sudah dibuat. Simpan kode pesanan
+          Pesanan kamu sudah dibuat. Screenshoot atau Simpan kode pesanan
           berikut untuk proses selanjutnya.
         </p>
 

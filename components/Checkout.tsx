@@ -17,6 +17,7 @@ export default function Checkout() {
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [className, setClassName] = useState("");
+  const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [payment, setPayment] = useState("Transfer");
 
@@ -65,6 +66,11 @@ export default function Checkout() {
       return;
     }
 
+    if (!address.trim()) {
+      alert("Alamat lengkap wajib diisi.");
+      return;
+    }
+
     setLoading(true);
 
     const orderCode =
@@ -81,6 +87,7 @@ export default function Checkout() {
         customer_name: name.trim(),
         whatsapp: whatsapp.trim(),
         class_name: className.trim(),
+        address: address.trim(),
         note: note.trim() || null,
         payment_method: payment,
         items: cart,
@@ -106,6 +113,7 @@ export default function Checkout() {
       customerName: name.trim(),
       whatsapp: whatsapp.trim(),
       className: className.trim(),
+      address: address.trim(),
       note: note.trim(),
       payment,
       items: cart,
@@ -234,6 +242,32 @@ export default function Checkout() {
             />
           </div>
 
+          {/* ALAMAT */}
+          <div>
+            <label
+              htmlFor="address"
+              className="text-sm font-bold"
+            >
+              Alamat Lengkap
+            </label>
+
+            <textarea
+              id="address"
+              value={address}
+              onChange={(event) =>
+                setAddress(event.target.value)
+              }
+              placeholder="Contoh: Jl. Raya Maos No. 10, Maos, Cilacap"
+              rows={4}
+              className="mt-2 w-full resize-none rounded-xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-black"
+            />
+
+            <p className="mt-2 text-xs text-black/40">
+              Masukkan alamat lengkap untuk keperluan pengambilan /
+              pengiriman pesanan.
+            </p>
+          </div>
+
           {/* PEMBAYARAN */}
           <div>
             <label
@@ -320,7 +354,7 @@ export default function Checkout() {
                   </p>
                 </div>
 
-                <p className="font-bold whitespace-nowrap">
+                <p className="whitespace-nowrap font-bold">
                   Rp
                   {(
                     item.price * item.quantity
