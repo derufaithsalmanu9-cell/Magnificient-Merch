@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error("Supabase status error:", error);
 
       return NextResponse.json(
         {
