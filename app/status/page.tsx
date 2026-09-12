@@ -361,6 +361,15 @@ export default function StatusPage() {
                 : "↻ Perbarui Status"}
             </button>
 
+            {order.status === "Menunggu Pembayaran" && (
+              <a
+                href={`/payment?code=${order.order_code}`}
+                className="mt-6 inline-block rounded-full bg-black px-6 py-4 text-sm font-bold text-white hover:bg-red-600"
+              >
+                Upload Bukti Transfer →
+              </a>
+            )}
+
           </section>
         )}
 

@@ -1,6 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import PaymentVerification from "./PaymentVerification";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
+
+type PaymentVerificationProps = {
+  order: Order;
+  onUpdated: () => Promise<void>;
+};
+
+const PaymentVerificationUI =
+  PaymentVerification as unknown as (
+    props: PaymentVerificationProps
+  ) => ReactElement;
 
 type ProductSize = {
   size: string;
@@ -1382,6 +1393,37 @@ export default function AdminDashboard() {
                         </td>
 
                         <td className="px-6 py-5">
+  <div className="space-y-3">
+
+    {/* STATUS */}
+    <select
+      value={order.status}
+      onChange={(e) =>
+        updateOrderStatus(
+          order,
+          e.target.value
+        )
+      }
+      className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-xs font-bold outline-none"
+    >
+      <option>Menunggu Pembayaran</option>
+      <option>Menunggu Verifikasi</option>
+      <option>Pembayaran Diterima</option>
+      <option>Pembayaran Ditolak</option>
+      <option>Diproses</option>
+      <option>Siap Diambil</option>
+      <option>Selesai</option>
+      <option>Dibatalkan</option>
+    </select>
+
+    {/* VERIFIKASI BUKTI TRANSFER */}
+    <PaymentVerificationUI
+      order={order}
+      onUpdated={loadData}
+    />
+
+  </div>
+</td><td className="px-6 py-5">
 
                           <select
                             value={
