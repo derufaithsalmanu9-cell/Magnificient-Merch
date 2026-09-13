@@ -1485,3 +1485,65 @@ export default function AdminDashboard() {
     </div>
   );
 }
+async function exportExcel() {
+  try {
+    const response = await fetch(
+      "/api/admin/export",
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
+
+    if (!response.ok) {
+      const data = await response.json();
+
+      throw new Error(
+        data.error ||
+          "Gagal melakukan export."
+      );
+    }
+
+    const blob =
+      await response.blob();
+
+    const url =
+      window.URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+      `DATA-PO-MAGNIFICIENT-${new Date()
+        .toISOString()
+        .slice(0, 10)}.xlsx`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error(
+      "EXPORT ERROR:",
+      error
+    );
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Gagal export Excel."
+    );
+  }
+}
+<button
+  type="button"
+  onClick={exportExcel}
+  className="rounded-full bg-green-600 px-5 py-3 text-sm font-black text-white transition hover:bg-green-700"
+>
+  ↓ Export Excel PO
+</button>
