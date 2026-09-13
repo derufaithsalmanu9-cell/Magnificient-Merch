@@ -1485,6 +1485,85 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+async function exportOrders() {
+  try {
+    const response = await fetch(
+      "/api/admin/orders/export",
+      {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+
+      let message = "Gagal melakukan export data pesanan.";
+
+      try {
+        const data = JSON.parse(text);
+        message = data.error || message;
+      } catch {
+        if (text) {
+          message = text.substring(0, 300);
+        }
+      }
+
+      throw new Error(message);
+    }
+
+    const blob = await response.blob();
+
+    if (!blob.size) {
+      throw new Error(
+        "File CSV yang diterima kosong."
+      );
+    }
+
+    const url =
+      window.URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+      `DATA-PESANAN-MAGNIFICIENT-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error(
+      "EXPORT ORDERS ERROR:",
+      error
+    );
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Gagal export data pesanan."
+    );
+  }
+}
+
+<button
+  type="button"
+  onClick={exportExcel}
+  className="rounded-full bg-green-600 px-5 py-3 text-sm font-black text-white transition hover:bg-green-700"
+>
+  ↓ Export Excel PO
+</button>
+
 async function exportExcel() {
   try {
     const response = await fetch(
@@ -1492,20 +1571,34 @@ async function exportExcel() {
       {
         method: "GET",
         credentials: "include",
+        cache: "no-store",
       }
     );
 
     if (!response.ok) {
-      const data = await response.json();
+      const text = await response.text();
 
-      throw new Error(
-        data.error ||
-          "Gagal melakukan export."
-      );
+      let message = "Gagal melakukan export.";
+
+      try {
+        const data = JSON.parse(text);
+        message = data.error || message;
+      } catch {
+        if (text) {
+          message = text.substring(0, 300);
+        }
+      }
+
+      throw new Error(message);
     }
 
-    const blob =
-      await response.blob();
+    const blob = await response.blob();
+
+    if (!blob.size) {
+      throw new Error(
+        "File Excel yang diterima kosong."
+      );
+    }
 
     const url =
       window.URL.createObjectURL(blob);
@@ -1529,7 +1622,7 @@ async function exportExcel() {
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error(
-      "EXPORT ERROR:",
+      "EXPORT EXCEL ERROR:",
       error
     );
 
@@ -1540,10 +1633,23 @@ async function exportExcel() {
     );
   }
 }
-<button
-  type="button"
-  onClick={exportExcel}
-  className="rounded-full bg-green-600 px-5 py-3 text-sm font-black text-white transition hover:bg-green-700"
->
-  ↓ Export Excel PO
-</button>
+
+<div className="flex flex-wrap gap-3">
+
+  <button
+    type="button"
+    onClick={exportOrders}
+    className="rounded-full bg-white px-5 py-3 text-sm font-bold transition hover:bg-black hover:text-white"
+  >
+    Export CSV
+  </button>
+
+  <button
+    type="button"
+    onClick={exportExcel}
+    className="rounded-full bg-green-600 px-5 py-3 text-sm font-black text-white transition hover:bg-green-700"
+  >
+    ↓ Export Excel PO
+  </button>
+
+</div>
